@@ -1,10 +1,10 @@
 extern crate libc;
-use libc::{ c_int, c_void, c_char};
+use libc::c_char;
 use std::ffi::CString;
 
 extern {
     fn open_lib(lib_name: *const c_char, flags: u64) -> u64;
-    fn lib_err() -> *const c_char;
+    fn lib_err() -> *mut c_char;
     fn close_lib(handle: u64) -> u64;
     fn load_symbol(handle: u64,func_name: *const c_char) -> u64;
 }
@@ -14,14 +14,12 @@ extern {
 //
 // This type allows for symlinking against x86_64 Linux C/Rust symbols.
 pub struct SymLinkLibrary {
-    name: String,
     load_flags: u64,
     handle: u64
 }
 impl SymLinkLibrary {
     pub fn new() -> SymLinkLibrary {
         SymLinkLibrary {
-            name: String::new(),
             load_flags: 0u64,
             handle: 0u64
         }
@@ -111,4 +109,97 @@ impl SymLinkLibrary {
     // object will use its own symbols in preference to global
     // symbols with the same name contained in objects that have
     // already been loaded.
+    pub fn open<I:Into<Vec<u8>>>(self,path: I)-> Result<SymLinkLibrary,String> {
+        let mut s = self;
+        let cstr = match CString::new(path) {
+            Ok(x) => x,
+            Err(_) => return Err("Null byte was in file path. This isn't required".to_string())
+        };
+        s.handle = unsafe{ open_lib(cstr.as_ptr(),s.load_flags) };
+        if s.handle == 0 {
+            let cstr = unsafe { CString::from_raw( lib_err() ) };
+            match cstr.into_string() {
+                Ok(x) => return Err(x),
+                Err(_) => return Err("Error occured while opening library AND while geting error message.".to_string())
+            };
+        }
+        Ok(s)
+    }
+    // Opens Library
+    //
+    // As user has populated the flags they want. This consumes the current flags and opens that
+    // library for linking.
+    pub fn load_0x1<O,Func:Fn()->O,S:Into<Vec<u8>>>(&self,func_name: S) -> Result<Box<Func>,String>{
+        let cstr = match CString::new(func_name) {
+            Ok(x) => x,
+            Err(_) => return Err("Null byte was in file path. This isn't required".to_string())
+        };
+        let ptr = unsafe{ load_symbol(self.handle, cstr.as_ptr()) };
+        if ptr == 0 {
+            let cstr = unsafe { CString::from_raw( lib_err() ) };
+            match cstr.into_string() {
+                Ok(x) => return Err(x),
+                Err(_) => return Err("Error occured while loading symbol AND while geting error message.".to_string())
+            };
+        }
+        let f: Box<Func> = unsafe{ std::mem::transmute(ptr) };
+        Ok(f)
+    }
+    // Load a void function with 1 return value.
+    pub fn load_1x1<I,O,Func:Fn(I)->O,S:Into<Vec<u8>>>(&self,func_name:S) -> Result<Box<Func>,String> {
+        let cstr = match CString::new(func_name) {
+            Ok(x) => x,
+            Err(_) => return Err("Null byte was in file path. This isn't required".to_string())
+        };
+        let ptr = unsafe{ load_symbol(self.handle, cstr.as_ptr()) };
+        if ptr == 0 {
+            let cstr = unsafe { CString::from_raw( lib_err() ) };
+            match cstr.into_string() {
+                Ok(x) => return Err(x),
+                Err(_) => return Err("Error occured while loading symbol AND while geting error message.".to_string())
+            };
+        }
+        let f: Box<Func> = unsafe{ std::mem::transmute(ptr) };
+        Ok(f)
+    }
+    // Loads a function which consumes 1 item off the stack, and places 1 item on the stack
+    pub fn load_2x1<I1,I2,O,Func:Fn(I1,I2)->O,S:Into<Vec<u8>>>(&self,func_name:S) -> Result<Box<Func>,String> {
+        let cstr = match CString::new(func_name) {
+            Ok(x) => x,
+            Err(_) => return Err("Null byte was in file path. This isn't required".to_string())
+        };
+        let ptr = unsafe{ load_symbol(self.handle, cstr.as_ptr()) };
+        if ptr == 0 {
+            let cstr = unsafe { CString::from_raw( lib_err() ) };
+            match cstr.into_string() {
+                Ok(x) => return Err(x),
+                Err(_) => return Err("Error occured while loading symbol AND while geting error message.".to_string())
+            };
+        }
+        let f: Box<Func> = unsafe{ std::mem::transmute(ptr) };
+        Ok(f)
+    }
+    // Loads a function which consumes 2 item's off the stack, and places 1 item on the stack
+    pub fn load_3x1<I1,I2,I3,O,Func:Fn(I1,I2,I3)->O,S:Into<Vec<u8>>>(&self,func_name:S) -> Result<Box<Func>,String> {
+        let cstr = match CString::new(func_name) {
+            Ok(x) => x,
+            Err(_) => return Err("Null byte was in file path. This isn't required".to_string())
+        };
+        let ptr = unsafe{ load_symbol(self.handle, cstr.as_ptr()) };
+        if ptr == 0 {
+            let cstr = unsafe { CString::from_raw( lib_err() ) };
+            match cstr.into_string() {
+                Ok(x) => return Err(x),
+                Err(_) => return Err("Error occured while loading symbol AND while geting error message.".to_string())
+            };
+        }
+        let f: Box<Func> = unsafe{ std::mem::transmute(ptr) };
+        Ok(f)
+    }
+    // Loads a function which consumes 3 item's off the stack, and places 1 item on the stack
+}
+impl Drop for SymLinkLibrary {
+    fn drop(&mut self) {
+        let _ = unsafe { close_lib( self.handle ) };
+    }
 }

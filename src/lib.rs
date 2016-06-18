@@ -26,7 +26,6 @@ impl SymLinkLibrary {
             handle: 0u64
         }
     }
-    /// Creates a new loader object
     /*
     pub fn load_lazy(self) -> SymLinkLibrary {
         let mut s = self;

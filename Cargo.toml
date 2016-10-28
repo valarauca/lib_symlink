@@ -1,8 +1,18 @@
 [package]
 name = "lib_symlink"
-version = "0.1.0"
-authors = ["valarauca"]
+version = "0.2.0"
+authors = ["<codylaeder@gmail.com> William Cody Laeder"]
+repository = "https://github.com/valarauca/lib_symlink.git"
+homepage = "https://github.com/valarauca/lib_symlink"
+license = "Apache-2.0"
+readme = "README.md"
+documentation = "https://valarauca.github.cio/lib_symlink/lib_symlink/index.html"
+description = "Simple bindings to dlfnc.h"
+keywords = ["dlfnc", "dlopen", "dynamic", "linking"]
+
+
+[build-dependencies]
+gcc = "0.3.*"
 
 [dependencies]
 libc = "0.2.12"
-gcc = "0.3.28"
